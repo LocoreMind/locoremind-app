@@ -1,0 +1,116 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="3D Model Generator"
+  description="Generate 3D models from text or images"
+  icon="🧊"
+  category="3D"
+  hfSpaceUrl="https://huggingface.co/spaces/LocoreMind/3d-gen"
+>
+  <div class="space-y-6">
+    <div>
+      <label class="block text-sm font-medium text-surface-300 mb-2">Input Method</label>
+      <div class="flex gap-2 mb-4">
+        <button id="tab-text" class="flex-1 py-2 text-sm border border-primary-500/30 rounded-lg bg-primary-600/20 text-primary-400 transition-colors">Text to 3D</button>
+        <button id="tab-image" class="flex-1 py-2 text-sm border border-surface-700 rounded-lg text-surface-400 hover:text-white hover:border-surface-500 transition-colors">Image to 3D</button>
+      </div>
+    </div>
+
+    <div id="text-input-section">
+      <label class="block text-sm font-medium text-surface-300 mb-2">Describe the 3D model</label>
+      <textarea
+        id="text-input"
+        rows="3"
+        class="w-full bg-surface-800 border border-surface-700 rounded-lg px-4 py-3 text-sm text-surface-200 focus:border-primary-500 focus:outline-none resize-none"
+        placeholder="A small wooden treasure chest with gold trim and a padlock..."
+      ></textarea>
+    </div>
+
+    <div id="image-input-section" class="hidden">
+      <label class="block text-sm font-medium text-surface-300 mb-2">Upload Reference Image</label>
+      <div id="drop-zone" class="border-2 border-dashed border-surface-700 rounded-lg p-8 text-center hover:border-surface-500 transition-colors cursor-pointer">
+        <div class="text-3xl mb-2">🖼️</div>
+        <p class="text-surface-400 text-sm">Drag & drop an image, or click to browse</p>
+        <input type="file" id="file-input" class="hidden" accept="image/*" />
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-surface-300 mb-2">Model</label>
+      <select class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-surface-200 focus:border-primary-500 focus:outline-none">
+        <option>TripoSR (Fast)</option>
+        <option>InstantMesh</option>
+      </select>
+    </div>
+
+    <button id="run-btn" class="w-full py-3 bg-primary-600 hover:bg-primary-500 text-white font-medium rounded-lg transition-colors">
+      Generate 3D Model
+    </button>
+
+    <div id="result" class="hidden">
+      <label class="block text-sm font-medium text-surface-300 mb-2">Generated 3D Model</label>
+      <div class="bg-surface-800 border border-surface-700 rounded-lg p-4">
+        <div class="aspect-square max-w-sm mx-auto rounded-lg bg-surface-700 flex items-center justify-center">
+          <div class="text-center">
+            <div class="text-5xl mb-3">🧊</div>
+            <p class="text-surface-400 text-sm">3D Model Preview</p>
+            <p class="text-surface-500 text-xs mt-1">Interactive viewer would render here</p>
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button class="flex-1 py-2 text-sm text-surface-300 hover:text-white border border-surface-700 rounded-lg hover:border-surface-500 transition-colors">Download GLB</button>
+        <button class="flex-1 py-2 text-sm text-surface-300 hover:text-white border border-surface-700 rounded-lg hover:border-surface-500 transition-colors">Download OBJ</button>
+      </div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const tabText = document.getElementById('tab-text')!;
+  const tabImage = document.getElementById('tab-image')!;
+  const textSection = document.getElementById('text-input-section')!;
+  const imageSection = document.getElementById('image-input-section')!;
+  const runBtn = document.getElementById('run-btn')!;
+  const result = document.getElementById('result')!;
+  const dropZone = document.getElementById('drop-zone')!;
+  const fileInput = document.getElementById('file-input') as HTMLInputElement;
+
+  tabText.addEventListener('click', () => {
+    tabText.classList.add('border-primary-500/30', 'bg-primary-600/20', 'text-primary-400');
+    tabText.classList.remove('border-surface-700', 'text-surface-400');
+    tabImage.classList.remove('border-primary-500/30', 'bg-primary-600/20', 'text-primary-400');
+    tabImage.classList.add('border-surface-700', 'text-surface-400');
+    textSection.classList.remove('hidden');
+    imageSection.classList.add('hidden');
+  });
+
+  tabImage.addEventListener('click', () => {
+    tabImage.classList.add('border-primary-500/30', 'bg-primary-600/20', 'text-primary-400');
+    tabImage.classList.remove('border-surface-700', 'text-surface-400');
+    tabText.classList.remove('border-primary-500/30', 'bg-primary-600/20', 'text-primary-400');
+    tabText.classList.add('border-surface-700', 'text-surface-400');
+    imageSection.classList.remove('hidden');
+    textSection.classList.add('hidden');
+  });
+
+  dropZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files?.length) {
+      const file = fileInput.files[0];
+      dropZone.innerHTML = `<div class="text-2xl mb-2">🖼️</div><p class="text-surface-300 text-sm font-medium">${file.name}</p>`;
+    }
+  });
+
+  runBtn.addEventListener('click', () => {
+    runBtn.textContent = 'Generating...';
+    (runBtn as HTMLButtonElement).disabled = true;
+    setTimeout(() => {
+      result.classList.remove('hidden');
+      runBtn.textContent = 'Generate 3D Model';
+      (runBtn as HTMLButtonElement).disabled = false;
+    }, 3000);
+  });
+</script>

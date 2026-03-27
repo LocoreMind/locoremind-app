@@ -1,0 +1,97 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Document Q&A"
+  description="Upload a document and ask questions about its content"
+  icon="💬"
+  category="Document"
+  hfSpaceUrl="https://huggingface.co/spaces/LocoreMind/doc-qa"
+>
+  <div class="space-y-6">
+    <div>
+      <label class="block text-sm font-medium text-surface-300 mb-2">Upload Document</label>
+      <div id="drop-zone" class="border-2 border-dashed border-surface-700 rounded-lg p-10 text-center hover:border-surface-500 transition-colors cursor-pointer">
+        <div class="text-4xl mb-3">💬</div>
+        <p class="text-surface-400 text-sm">Drag & drop a document here, or click to browse</p>
+        <p class="text-surface-500 text-xs mt-2">Supports PDF, DOCX, TXT — Max 10MB</p>
+        <input type="file" id="file-input" class="hidden" accept=".pdf,.docx,.txt,.md" />
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-surface-300 mb-2">Ask a Question</label>
+      <div class="flex gap-2">
+        <input
+          type="text"
+          id="question-input"
+          class="flex-1 bg-surface-800 border border-surface-700 rounded-lg px-4 py-2.5 text-sm text-surface-200 focus:border-primary-500 focus:outline-none"
+          placeholder="What is this document about?"
+        />
+        <button id="ask-btn" class="px-6 py-2.5 bg-primary-600 hover:bg-primary-500 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm" disabled>
+          Ask
+        </button>
+      </div>
+    </div>
+
+    <div id="chat" class="hidden space-y-3">
+      <div class="bg-surface-800/50 border border-surface-700 rounded-lg p-4">
+        <p class="text-xs text-primary-400 mb-1 font-medium">You</p>
+        <p class="text-sm text-surface-200">What is this document about?</p>
+      </div>
+      <div class="bg-surface-800/50 border border-surface-700 rounded-lg p-4">
+        <p class="text-xs text-accent-400 mb-1 font-medium">AI</p>
+        <p class="text-sm text-surface-200 leading-relaxed">
+          Based on the uploaded document, this appears to be a mock demonstration of the Document Q&A tool. In production, the system would:
+
+1. Parse and chunk the uploaded document
+2. Create embeddings using a local model
+3. Retrieve relevant passages based on your question
+4. Generate a contextual answer using a language model
+
+The entire pipeline runs on local Mac Studio hardware using open-source models like Qwen2.5 for generation and BGE for embeddings.
+        </p>
+      </div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const dropZone = document.getElementById('drop-zone')!;
+  const fileInput = document.getElementById('file-input') as HTMLInputElement;
+  const askBtn = document.getElementById('ask-btn') as HTMLButtonElement;
+  const questionInput = document.getElementById('question-input') as HTMLInputElement;
+  const chat = document.getElementById('chat')!;
+
+  dropZone.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-primary-500'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-primary-500'));
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('border-primary-500');
+    if (e.dataTransfer?.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', () => { if (fileInput.files?.length) handleFile(fileInput.files[0]); });
+
+  function handleFile(file: File) {
+    dropZone.innerHTML = `<div class="text-2xl mb-2">📄</div><p class="text-surface-300 text-sm font-medium">${file.name}</p><p class="text-surface-500 text-xs mt-1">${(file.size / 1024).toFixed(1)} KB</p>`;
+    askBtn.disabled = false;
+  }
+
+  askBtn.addEventListener('click', () => {
+    if (!questionInput.value.trim()) return;
+    askBtn.textContent = 'Thinking...';
+    askBtn.disabled = true;
+    setTimeout(() => {
+      chat.classList.remove('hidden');
+      askBtn.textContent = 'Ask';
+      askBtn.disabled = false;
+      questionInput.value = '';
+    }, 1500);
+  });
+
+  questionInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !askBtn.disabled) askBtn.click();
+  });
+</script>

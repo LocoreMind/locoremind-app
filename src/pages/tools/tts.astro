@@ -1,0 +1,125 @@
+---
+import ToolLayout from '../../components/ToolLayout.astro';
+---
+
+<ToolLayout
+  title="Text to Speech"
+  description="Convert text to natural-sounding speech"
+  icon="🔊"
+  category="Audio"
+  hfSpaceUrl="https://huggingface.co/spaces/LocoreMind/tts"
+>
+  <div class="space-y-6">
+    <div>
+      <label class="block text-sm font-medium text-surface-300 mb-2">Enter Text</label>
+      <textarea
+        id="text-input"
+        rows="5"
+        class="w-full bg-surface-800 border border-surface-700 rounded-lg px-4 py-3 text-sm text-surface-200 focus:border-primary-500 focus:outline-none resize-none"
+        placeholder="Type or paste the text you want to convert to speech..."
+      ></textarea>
+      <div class="flex justify-end mt-1">
+        <span id="char-count" class="text-xs text-surface-500">0 / 5000</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-surface-300 mb-2">Voice</label>
+        <select class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-surface-200 focus:border-primary-500 focus:outline-none">
+          <option>Alloy (Neutral)</option>
+          <option>Echo (Male)</option>
+          <option>Fable (Female)</option>
+          <option>Nova (Female, Warm)</option>
+          <option>Onyx (Male, Deep)</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-surface-300 mb-2">Language</label>
+        <select class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-surface-200 focus:border-primary-500 focus:outline-none">
+          <option>English</option>
+          <option>Chinese</option>
+          <option>Japanese</option>
+          <option>Korean</option>
+          <option>Spanish</option>
+          <option>French</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-surface-300 mb-2">Speed</label>
+        <select class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-surface-200 focus:border-primary-500 focus:outline-none">
+          <option>0.75x (Slow)</option>
+          <option selected>1.0x (Normal)</option>
+          <option>1.25x (Fast)</option>
+          <option>1.5x (Faster)</option>
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-surface-300 mb-2">Model</label>
+      <select class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-surface-200 focus:border-primary-500 focus:outline-none">
+        <option>CosyVoice2 (Recommended)</option>
+        <option>F5-TTS</option>
+        <option>Bark</option>
+      </select>
+    </div>
+
+    <button id="run-btn" class="w-full py-3 bg-primary-600 hover:bg-primary-500 text-white font-medium rounded-lg transition-colors">
+      Generate Speech
+    </button>
+
+    <div id="result" class="hidden">
+      <label class="block text-sm font-medium text-surface-300 mb-2">Generated Audio</label>
+      <div class="bg-surface-800 border border-surface-700 rounded-lg p-4 space-y-3">
+        <div class="flex items-center gap-4">
+          <button id="play-btn" class="w-10 h-10 rounded-full bg-primary-600 hover:bg-primary-500 flex items-center justify-center transition-colors flex-shrink-0">
+            <svg class="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <div class="flex-1">
+            <div class="h-1 bg-surface-700 rounded-full overflow-hidden">
+              <div class="h-full bg-primary-500 rounded-full w-0 transition-all duration-[3000ms]" id="progress-bar"></div>
+            </div>
+            <div class="flex justify-between mt-1 text-xs text-surface-500">
+              <span>0:00</span>
+              <span>0:12</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex gap-2 pt-2 border-t border-surface-700">
+          <button class="flex-1 py-2 text-sm text-surface-300 hover:text-white border border-surface-700 rounded-lg hover:border-surface-500 transition-colors">Download WAV</button>
+          <button class="flex-1 py-2 text-sm text-surface-300 hover:text-white border border-surface-700 rounded-lg hover:border-surface-500 transition-colors">Download MP3</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  const textInput = document.getElementById('text-input') as HTMLTextAreaElement;
+  const charCount = document.getElementById('char-count')!;
+  const runBtn = document.getElementById('run-btn')!;
+  const result = document.getElementById('result')!;
+  const playBtn = document.getElementById('play-btn')!;
+  const progressBar = document.getElementById('progress-bar')!;
+
+  textInput.addEventListener('input', () => {
+    charCount.textContent = `${textInput.value.length} / 5000`;
+  });
+
+  runBtn.addEventListener('click', () => {
+    if (!textInput.value.trim()) return;
+    runBtn.textContent = 'Generating...';
+    (runBtn as HTMLButtonElement).disabled = true;
+    setTimeout(() => {
+      result.classList.remove('hidden');
+      runBtn.textContent = 'Generate Speech';
+      (runBtn as HTMLButtonElement).disabled = false;
+    }, 2000);
+  });
+
+  playBtn.addEventListener('click', () => {
+    progressBar.style.width = '100%';
+    setTimeout(() => { progressBar.style.width = '0%'; }, 3500);
+  });
+</script>
