@@ -7,37 +7,37 @@ import ToolLayout from '../../components/ToolLayout.astro';
   description="Extract text from images and scanned documents"
   icon="📄"
   category="Document"
-  hfSpaceUrl="https://huggingface.co/spaces/LocoreMind/ocr"
+  hfSpaceUrl="https://huggingface.co/spaces/jason1966/Qianfan-OCR-MLX"
 >
   <div class="space-y-6">
     <div>
       <label class="block text-sm font-medium text-surface-300 mb-2">Upload Image or Document</label>
       <div id="drop-zone" class="border-2 border-dashed border-surface-700 rounded-lg p-10 text-center hover:border-surface-500 transition-colors cursor-pointer">
-        <div class="text-4xl mb-3">📄</div>
-        <p class="text-surface-400 text-sm">Drag & drop an image here, or click to browse</p>
-        <p class="text-surface-500 text-xs mt-2">Supports PNG, JPG, PDF — Max 5MB</p>
-        <input type="file" id="file-input" class="hidden" accept="image/*,.pdf" />
+        <div id="upload-placeholder">
+          <div class="text-4xl mb-3">📄</div>
+          <p class="text-surface-400 text-sm">Drag & drop an image here, or click to browse</p>
+          <p class="text-surface-500 text-xs mt-2">Supports PNG, JPG, WEBP — Max 10MB</p>
+        </div>
+        <img id="preview" class="hidden max-h-64 mx-auto rounded" alt="Preview" />
+        <input type="file" id="file-input" class="hidden" accept="image/*" />
       </div>
     </div>
 
     <div class="flex items-center gap-4">
       <div class="flex-1">
-        <label class="block text-sm font-medium text-surface-300 mb-2">Language</label>
-        <select class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-surface-200 focus:border-primary-500 focus:outline-none">
-          <option>Auto-detect</option>
-          <option>English</option>
-          <option>Chinese (Simplified)</option>
-          <option>Chinese (Traditional)</option>
-          <option>Japanese</option>
-          <option>Korean</option>
+        <label class="block text-sm font-medium text-surface-300 mb-2">Task</label>
+        <select id="task-select" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-surface-200 focus:border-primary-500 focus:outline-none">
+          <option value="Parse this document to Markdown.">Document to Markdown</option>
+          <option value="Extract all text from this image.">Extract Text (OCR)</option>
+          <option value="Extract all tables and convert to Markdown format.">Table to Markdown</option>
+          <option value="Extract all tables from this document and convert to HTML format.">Table to HTML</option>
+          <option value="Extract all mathematical formulas and convert to LaTeX format.">Formula to LaTeX</option>
         </select>
       </div>
       <div class="flex-1">
         <label class="block text-sm font-medium text-surface-300 mb-2">Model</label>
-        <select class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-surface-200 focus:border-primary-500 focus:outline-none">
-          <option>GOT-OCR2 (Recommended)</option>
-          <option>PaddleOCR</option>
-          <option>Tesseract</option>
+        <select id="model-select" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-surface-200 focus:border-primary-500 focus:outline-none">
+          <option value="qianfan-ocr">Qianfan-OCR (Recommended)</option>
         </select>
       </div>
     </div>
@@ -48,34 +48,43 @@ import ToolLayout from '../../components/ToolLayout.astro';
 
     <div id="result" class="hidden">
       <div class="flex items-center justify-between mb-2">
-        <label class="block text-sm font-medium text-surface-300">Extracted Text</label>
-        <button id="copy-btn" class="text-xs text-primary-400 hover:text-primary-300 transition-colors">Copy to clipboard</button>
+        <label class="block text-sm font-medium text-surface-300">Result</label>
+        <div class="flex items-center gap-3">
+          <span id="stats" class="text-xs text-surface-500"></span>
+          <button id="copy-btn" class="text-xs text-primary-400 hover:text-primary-300 transition-colors">Copy to clipboard</button>
+        </div>
       </div>
-      <div class="bg-surface-800 border border-surface-700 rounded-lg p-4">
-        <p id="result-text" class="text-sm text-surface-200 whitespace-pre-wrap leading-relaxed">
-          This is a mock OCR result. In production, the uploaded image would be sent to a GOT-OCR2 model running on Mac Studio hardware for text extraction.
-
-The model supports:
-- Printed text in 50+ languages
-- Handwritten text recognition
-- Table structure preservation
-- Mathematical formula extraction
-
-Processing time: ~2-5 seconds per page.
-        </p>
+      <div class="bg-surface-800 border border-surface-700 rounded-lg p-4 max-h-[500px] overflow-y-auto">
+        <pre id="result-text" class="text-sm text-surface-200 whitespace-pre-wrap leading-relaxed font-mono"></pre>
       </div>
+    </div>
+
+    <div id="error" class="hidden bg-red-900/30 border border-red-800 rounded-lg p-4">
+      <p id="error-text" class="text-sm text-red-300"></p>
     </div>
   </div>
 </ToolLayout>
 
 <script>
+  const API_URL = 'https://qianfanocr.locoremind.com';
+  const MODEL_NAME = 'models/Qianfan-OCR-MLX-4bit';
+
   const dropZone = document.getElementById('drop-zone')!;
+  const uploadPlaceholder = document.getElementById('upload-placeholder')!;
+  const previewImg = document.getElementById('preview') as HTMLImageElement;
   const fileInput = document.getElementById('file-input') as HTMLInputElement;
+  const taskSelect = document.getElementById('task-select') as HTMLSelectElement;
   const runBtn = document.getElementById('run-btn') as HTMLButtonElement;
   const result = document.getElementById('result')!;
-  const copyBtn = document.getElementById('copy-btn')!;
   const resultText = document.getElementById('result-text')!;
+  const stats = document.getElementById('stats')!;
+  const copyBtn = document.getElementById('copy-btn')!;
+  const errorDiv = document.getElementById('error')!;
+  const errorText = document.getElementById('error-text')!;
 
+  let imageBase64: string | null = null;
+
+  // File handling
   dropZone.addEventListener('click', () => fileInput.click());
   dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-primary-500'); });
   dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-primary-500'));
@@ -87,23 +96,100 @@ Processing time: ~2-5 seconds per page.
   fileInput.addEventListener('change', () => { if (fileInput.files?.length) handleFile(fileInput.files[0]); });
 
   function handleFile(file: File) {
-    dropZone.innerHTML = `<div class="text-2xl mb-2">✅</div><p class="text-surface-300 text-sm font-medium">${file.name}</p><p class="text-surface-500 text-xs mt-1">${(file.size / 1024).toFixed(1)} KB</p>`;
-    runBtn.disabled = false;
+    if (!file.type.startsWith('image/')) {
+      showError('Please upload an image file (PNG, JPG, WEBP).');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      showError('File too large. Maximum size is 10MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      imageBase64 = e.target?.result as string;
+      previewImg.src = imageBase64;
+      previewImg.classList.remove('hidden');
+      uploadPlaceholder.classList.add('hidden');
+      runBtn.disabled = false;
+      errorDiv.classList.add('hidden');
+    };
+    reader.readAsDataURL(file);
   }
 
-  runBtn.addEventListener('click', () => {
+  // OCR processing
+  runBtn.addEventListener('click', async () => {
+    if (!imageBase64) return;
+
     runBtn.textContent = 'Processing...';
     runBtn.disabled = true;
-    setTimeout(() => {
+    result.classList.add('hidden');
+    errorDiv.classList.add('hidden');
+
+    const prompt = taskSelect.value;
+    const startTime = Date.now();
+
+    try {
+      const response = await fetch(`${API_URL}/v1/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: MODEL_NAME,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'input_text', text: prompt },
+              { type: 'input_image', image_url: imageBase64 }
+            ]
+          }],
+          max_tokens: 4096,
+          temperature: 0.1,
+          stream: false
+        })
+      });
+
+      if (!response.ok) {
+        const errBody = await response.text();
+        if (response.status === 429) {
+          throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+        }
+        throw new Error(`Server error (${response.status}): ${errBody}`);
+      }
+
+      const data = await response.json();
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
+      if (!data.choices?.[0]?.message?.content) {
+        throw new Error('Invalid response from OCR backend.');
+      }
+
+      const text = data.choices[0].message.content;
+      resultText.textContent = text;
       result.classList.remove('hidden');
+
+      let statsStr = `${duration}s`;
+      if (data.usage) {
+        statsStr += ` · ${data.usage.completion_tokens} tokens`;
+      }
+      stats.textContent = statsStr;
+
+    } catch (err: any) {
+      showError(err.message || 'An unexpected error occurred.');
+    } finally {
       runBtn.textContent = 'Extract Text';
       runBtn.disabled = false;
-    }, 1500);
+    }
   });
 
+  // Copy
   copyBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(resultText.textContent || '');
     copyBtn.textContent = 'Copied!';
     setTimeout(() => copyBtn.textContent = 'Copy to clipboard', 2000);
   });
+
+  function showError(msg: string) {
+    errorText.textContent = msg;
+    errorDiv.classList.remove('hidden');
+  }
 </script>
