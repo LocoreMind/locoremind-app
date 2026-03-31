@@ -1,0 +1,6 @@
+# robots.txt for app.locoremind.com
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://app.locoremind.com/sitemap.xml
